@@ -90,7 +90,11 @@ public class MusicService extends Service implements
     public void onPrepared(MediaPlayer mp) {
         if(!isInit)
         mp.start();
+        Log.d("MusicService","onprepared");
+        if(!isPrepared)
+            go();
         isPrepared = true;
+
 //        Intent notIntent = new Intent(this, MainActivity.class);
 //        notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 //        PendingIntent pendInt = PendingIntent.getActivity(this, 0,
@@ -173,6 +177,7 @@ public class MusicService extends Service implements
         return player.getCurrentPosition();
     }
 
+    public int getSongPosition() {return  songPosn;}
     public int getDur(){
         return player.getDuration();
     }
