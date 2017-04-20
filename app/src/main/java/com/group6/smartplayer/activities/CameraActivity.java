@@ -34,10 +34,21 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 
+import com.facebook.AccessToken;
+import com.facebook.AccessTokenTracker;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.FacebookSdk;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.login.LoginResult;
+import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
 import com.google.android.gms.location.places.Places;
@@ -51,6 +62,9 @@ import com.microsoft.projectoxford.emotion.contract.RecognizeResult;
 import com.microsoft.projectoxford.emotion.contract.Scores;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -74,8 +88,12 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
     private FrameLayout mPreviewLayout;
     BroadcastReceiver broadcastReceiver;
     Button button;
+    String email="";
     private static final int REQUEST_SELECT_IMAGE = 0;
-
+    CallbackManager callbackManager;
+    Intent i;
+    AccessTokenTracker accessTokenTracker;
+    AccessToken accessToken;
     // The button to select an image
     //private Button mButtonSelectImage;
 
@@ -95,6 +113,88 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
+        FacebookSdk.sdkInitialize(getApplicationContext());
+
+        callbackManager = CallbackManager.Factory.create();
+
+        accessTokenTracker = new AccessTokenTracker() {
+            @Override
+            protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
+                accessToken = currentAccessToken;
+                if(accessToken!=null)
+                {
+                    Log.d("access token oncuurent",accessToken.getToken());
+                }
+            }
+        };
+
+        accessToken= AccessToken.getCurrentAccessToken();
+        if(accessToken!=null)
+        {
+            Log.d("access token outside",accessToken.getToken());
+        }
+
+        LoginButton loginButton = (LoginButton) findViewById(R.id.login_button);
+        loginButton.setReadPermissions(Arrays.asList(
+                "email", "user_about_me", "user_friends", "user_likes", "user_posts", "user_relationships", "user_status"));
+
+        loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+
+                if(accessToken!=null) {
+                    Log.d("access token onsucces", accessToken.getToken());
+                    i.putExtra("access", accessToken.getToken());
+                }
+                GraphRequest request = GraphRequest.newMeRequest(
+                        loginResult.getAccessToken(),
+                        new GraphRequest.GraphJSONObjectCallback() {
+                            @Override
+                            public void onCompleted(JSONObject object, GraphResponse response) {
+                                Log.v("LoginActivity", response.toString());
+
+                                // Application code
+                                try {
+                                    email = object.getString("email");
+                                    Log.d("email",email);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                try {
+                                    String birthday = object.getString("birthday"); // 01/31/1980 format
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                Bundle parameters = new Bundle();
+                parameters.putString("fields", "id,name,email,gender,birthday");
+                request.setParameters(parameters);
+                request.executeAsync();
+
+                //LoginManager.getInstance().logOut();
+                //i=new Intent(LoginActivity.this,MainActivity.class);
+                // i.setClassName(LoginActivity.this,MainActivity.class);
+
+                i.putExtra("email",email);
+
+                startActivity(i);
+
+            }
+
+            @Override
+            public void onCancel() {
+
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+
+            }
+
+
+        });
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
                 .addApi(Places.GEO_DATA_API)
@@ -124,7 +224,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
             }
         });
 
-        startCameraInLayout(mPreviewLayout, mCameraId);
+
         /*mCam.setFaceDetectionListener(new Camera.FaceDetectionListener() {
             @Override
             public void onFaceDetection(Camera.Face[] faces, Camera camera) {
@@ -154,13 +254,28 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
 
                 PlaceLikelihood placeLikelihood = likelyPlaces.get( 0 );
                 String content = "";
-                if( placeLikelihood != null && placeLikelihood.getPlace() != null && !TextUtils.isEmpty( placeLikelihood.getPlace().getName() ) )
+                if( placeLikelihood!= null && placeLikelihood.getPlace() != null && !TextUtils.isEmpty( placeLikelihood.getPlace().getName() ) )
                     content = "Most likely place: " + placeLikelihood.getPlace().getName() + "\n";
                 if( placeLikelihood != null )
                     content += "Percent change of being there: " + (int) ( placeLikelihood.getLikelihood() * 100 ) + "%";
                 //mTextView.setText( content );
-                Log.d("places",content);
-                likelyPlaces.release();
+                List<Integer> li=placeLikelihood.getPlace().getPlaceTypes();
+                if( placeLikelihood.getPlace().getPlaceTypes().contains(1013))
+                {
+
+                    Intent startMainActivityIntent = new Intent(getApplicationContext(),MainActivity.class);
+                    startMainActivityIntent.putExtra("mood","gym");
+
+                    startActivity(startMainActivityIntent);
+                    finish();
+                    likelyPlaces.release();
+                }
+                else {
+                    Log.d("places", content);
+
+                    startCameraInLayout(mPreviewLayout, mCameraId);
+
+                }
             }
         });
     }
