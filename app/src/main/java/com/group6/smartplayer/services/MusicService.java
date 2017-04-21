@@ -8,7 +8,9 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
+import android.view.View;
 
+import com.group6.smartplayer.activities.MainActivity;
 import com.group6.smartplayer.adapters.Song;
 import com.group6.smartplayer.utils.Config;
 
@@ -91,6 +93,7 @@ public class MusicService extends Service implements
         if(!isInit)
         mp.start();
         Log.d("MusicService","onprepared");
+        MainActivity.progressBar.setVisibility(View.GONE);
         if(!isPrepared)
             go();
         isPrepared = true;

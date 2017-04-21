@@ -1,21 +1,39 @@
 package com.group6.smartplayer.activities;
 
+import android.app.SearchManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.graphics.Color;
+import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
+import android.provider.BaseColumns;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
+
+import android.support.v4.widget.CursorAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 import com.group6.smartplayer.R;
 import com.group6.smartplayer.adapters.Song;
+import com.group6.smartplayer.adapters.SongInfo;
 import com.group6.smartplayer.services.MusicService;
 import com.group6.smartplayer.services.SoundCloudService;
 import com.group6.smartplayer.services.SoundCloudServiceBuilder;
@@ -24,19 +42,39 @@ import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.*;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import static android.view.Gravity.CENTER;
+import com.squareup.seismic.ShakeDetector;
+
+import static android.view.Gravity.CENTER;
+import static android.widget.ListPopupWindow.MATCH_PARENT;
+
 import static com.group6.smartplayer.utils.SongIDs.ANGER_SONGS_ID;
 import static com.group6.smartplayer.utils.SongIDs.HAPPY_SONGS_ID;
 import static com.group6.smartplayer.utils.SongIDs.SADNESS_SONGS_ID;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements ShakeDetector.Listener
 {
-    static final String TABLE_NAME= "Songs";
 
+    HashMap<Integer,String> SADNESS_SONGS_ID=new HashMap<Integer,String>();
+    HashMap<Integer,String> HAPPY_SONGS_ID=new HashMap<Integer,String>();
+    HashMap<Integer,String> ANGER_SONGS_ID=new HashMap<Integer,String>();
+
+    HashMap<Integer,String> SADNESS_ARTIST_ID=new HashMap<Integer,String>();
+    HashMap<Integer,String> HAPPY_ARTISTS_ID=new HashMap<Integer,String>();
+    HashMap<Integer,String> ANGER_ARTISTS_ID=new HashMap<Integer,String>();
+
+    static final String TABLE_NAME= "Songs";
+    SearchView searchView;
+    ArrayList<String> songsList;
+    ArrayAdapter<String> arrayAdapter;
+    public static ProgressBar progressBar;
+    ListView listView;
     int[] songIds;
     MusicService musicService;
     String mood;
@@ -47,26 +85,85 @@ public class MainActivity extends AppCompatActivity
     Intent playIntent;
     private boolean paused=false, playbackPaused=false;
     final ArrayList<Song> mSoundCloudTracks = new ArrayList<>();
+
+    DataSource dataSource;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        DataSource dataSource = new DataSource(getApplicationContext());
+        //progressBar= (ProgressBar) findViewById(R.id.progressBar2);
+        dataSource= new DataSource(getApplicationContext());
         dataSource.createtable("Songs");
         dataSource.open();
-        for(int i = 0; i < SADNESS_SONGS_ID.length; i++) {
-            dataSource.insert("Songs", SADNESS_SONGS_ID[i], "sad");
+
+
+
+        /*TextView tv = new TextView(this);
+        tv.setGravity(CENTER);
+        tv.setText("Shake me, bro!");
+        setContentView(tv, new ActionBar.LayoutParams(MATCH_PARENT, MATCH_PARENT));*/
+
+
+        ANGER_SONGS_ID.put(50623988,"What I've done");
+        ANGER_ARTISTS_ID.put(50623988,"Linkin Park");
+        ANGER_SONGS_ID.put(68994095,"One step closer");
+        ANGER_ARTISTS_ID.put(68994095,"Linkin Park");
+        ANGER_SONGS_ID.put(184048237,"Numb");
+        ANGER_ARTISTS_ID.put(184048237,"Linkin Park");
+
+        HAPPY_SONGS_ID.put(96441813,"Radioactive");
+        HAPPY_ARTISTS_ID.put(96441813,"Imagine Dragons");
+        HAPPY_SONGS_ID.put(167375184,"It's time");
+        HAPPY_ARTISTS_ID.put(167375184,"Imagine Dragons");
+        HAPPY_SONGS_ID.put(185788656,"I bet my life");
+        HAPPY_ARTISTS_ID.put(185788656,"Imagine Dragons");
+
+        HAPPY_SONGS_ID.put(181778404,"Waka waka");
+        HAPPY_ARTISTS_ID.put(181778404,"Shakira");
+        HAPPY_SONGS_ID.put(262869782,"Try Everything");
+        HAPPY_ARTISTS_ID.put(262869782,"Shakira");
+        HAPPY_SONGS_ID.put(276738580,"La Bicicleta");
+        HAPPY_ARTISTS_ID.put(276738580,"Shakira");
+
+        SADNESS_SONGS_ID.put(146437548,"Somebody's me");
+        SADNESS_ARTIST_ID.put(146437548,"Enrique");
+        SADNESS_SONGS_ID.put(238349082,"Same Mistake");
+        SADNESS_ARTIST_ID.put(238349082,"James Blunt");
+        SADNESS_SONGS_ID.put(99450460,"With or without me");
+        SADNESS_ARTIST_ID.put(99450460,"U2");
+
+        Set<Integer> sadnessSongsKeySet = SADNESS_SONGS_ID.keySet();
+
+        for (Integer key : sadnessSongsKeySet) {
+            dataSource.insert("Songs", key, SADNESS_SONGS_ID.get(key), SADNESS_ARTIST_ID.get(key),"sad");
         }
-        for(int i = 0; i < ANGER_SONGS_ID.length; i++) {
-            dataSource.insert("Songs", SADNESS_SONGS_ID[i], "anger");
+
+        Set<Integer> happySongsKeySet = HAPPY_SONGS_ID.keySet();
+        for (Integer key : happySongsKeySet) {
+            dataSource.insert("Songs", key, HAPPY_SONGS_ID.get(key), HAPPY_ARTISTS_ID.get(key),"happy");
         }
-        for(int i = 0; i < HAPPY_SONGS_ID.length; i++) {
-            dataSource.insert("Songs", HAPPY_SONGS_ID[i], "happy");
+
+
+        Set<Integer> angrySongsKeySet = ANGER_SONGS_ID.keySet();
+        for (Integer key : angrySongsKeySet) {
+            dataSource.insert("Songs", key, ANGER_SONGS_ID.get(key), ANGER_ARTISTS_ID.get(key),"angry");
         }
 
         mood=getIntent().getStringExtra("mood");
+        Log.d("MainActivity","mood "+mood);
         songIds = dataSource.getPlaylist(TABLE_NAME,mood);
+        for(Integer i:songIds) {
+            getSongsFromSoundCloud(String.valueOf(i), false);
+
+        }
+        Picasso.with(getApplicationContext())
+                .load(mSoundCloudTracks.get(0).getArtworkURL())
+                .placeholder(R.drawable.ic_notification_default_black)
+                .error(R.drawable.ic_notification_default_black)
+                .into(artWorkImageView);
+        trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
+        songPicked(0,true);
         artWorkImageView= (ImageView) findViewById(R.id.imageViewArtWork);
         trackTitleTextView= (TextView) findViewById(R.id.textViewTrackTitle);
         playButton= (ImageButton) findViewById(R.id.btn_play);
@@ -113,27 +210,7 @@ public class MainActivity extends AppCompatActivity
             startService(playIntent);
        // }
 
-        SoundCloudService soundCloudService = SoundCloudServiceBuilder.getService();
 
-        Call<List<Song>> call = soundCloudService.getSoundCloudTracks("293");
-        call.enqueue(new Callback<List<Song>>() {
-            @Override
-            public void onResponse(Call<List<Song>> call, Response<List<Song>> response) {
-                mSoundCloudTracks.addAll(response.body());
-                Picasso.with(getApplicationContext())
-                        .load(mSoundCloudTracks.get(0).getArtworkURL())
-                        .placeholder(R.drawable.ic_notification_default_black)
-                        .error(R.drawable.ic_notification_default_black)
-                        .into(artWorkImageView);
-                trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
-                songPicked(0,true);
-            }
-
-            @Override
-            public void onFailure(Call<List<Song>> call, Throwable t) {
-
-            }
-        });
         /*soundCloudService.getSoundCloudTracks("293", new Callback<List<Song>>() {
             @Override
             public void onResponse(Call<List<Song>> call, Response<List<Song>> response)
@@ -148,6 +225,10 @@ public class MainActivity extends AppCompatActivity
             }
         });
 */
+
+        SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        ShakeDetector sd = new ShakeDetector(this);
+        sd.start(sensorManager);
 
     }
 
@@ -164,7 +245,8 @@ public class MainActivity extends AppCompatActivity
 
     }
     private void togglePlayPause() {
-        if(musicService.isPrepared()) {
+        //if(musicService.isPrepared())
+        {
             if (musicService.isPng()) {
                 //if(isFirstTime) mood = "null";
 
@@ -179,6 +261,102 @@ public class MainActivity extends AppCompatActivity
             }
         }
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+
+        String[] artistNames=getIntent().getStringArrayExtra(CameraActivity.ARTIST_NAMES);
+
+        Log.d("artistNames",artistNames.length+"");
+        final ArrayList<SongInfo> suggestions=new ArrayList<>();
+        for(String str:artistNames)
+        {
+            HashMap<Integer,SongInfo> map=dataSource.getSongs(TABLE_NAME,str);
+            Log.d("MainActivity","map size "+map.size());
+            for(Integer i:map.keySet())
+                suggestions.add(map.get(i));
+        }
+        Log.d("MainActivity","list size "+suggestions.size());
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.search_bar_menu, menu);
+
+        SearchManager searchManager = (SearchManager)
+                getSystemService(Context.SEARCH_SERVICE);
+        MenuItem searchMenuItem = menu.findItem(R.id.action_search);
+        searchView = (SearchView) searchMenuItem.getActionView();
+
+        searchView.setSearchableInfo(searchManager.
+                getSearchableInfo(getComponentName()));
+        searchView.setSubmitButtonEnabled(true);
+        //searchView.setOnQueryTextListener(this);
+        /*final List<String> suggestions = new ArrayList<>();
+        suggestions.add("song1");
+        suggestions.add("song2");
+        suggestions.add("song3");*/
+
+        android.support.v4.widget.SimpleCursorAdapter.ViewBinder binder = new android.support.v4.widget.SimpleCursorAdapter.ViewBinder() {
+            @Override
+            public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+                if(view.getId()==android.R.id.text1) {
+                    view.setBackgroundColor(Color.WHITE);
+                    return false;
+                }
+                return false;
+            }
+        };
+        final android.support.v4.widget.SimpleCursorAdapter suggestionAdapter =new android.support.v4.widget.SimpleCursorAdapter(this,android.R.layout.simple_list_item_1,null,new String[]{SearchManager.SUGGEST_COLUMN_TEXT_1},
+                new int[]{android.R.id.text1},
+                0);
+        suggestionAdapter.setViewBinder(binder);
+        searchView.setSuggestionsAdapter(suggestionAdapter);
+        searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+            @Override
+            public boolean onSuggestionSelect(int position) {
+                return false;
+            }
+
+            @Override
+            public boolean onSuggestionClick(int position) {
+                searchView.setQuery(suggestions.get(position).getSongName(), true);
+                getSongsFromSoundCloud(String.valueOf(suggestions.get(position).getId()),true);
+                //searchView.clearFocus();
+                return true;
+
+            }
+        });
+       /* searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });*/
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false; //false if you want implicit call to searchable activity
+                // or true if you want to handle submit yourself
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                // Hit the network and take all the suggestions and store them in List 'suggestions'
+
+                String[] columns = { BaseColumns._ID,
+                        SearchManager.SUGGEST_COLUMN_TEXT_1,
+                        SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+                };
+                MatrixCursor cursor = new MatrixCursor(columns);
+                for (int i = 0; i < suggestions.size(); i++) {
+                    String[] tmp = {Integer.toString(i),suggestions.get(i).getSongName(),suggestions.get(i).getSongName()};
+                    cursor.addRow(tmp);
+                }
+                suggestionAdapter.swapCursor(cursor);
+                return false;
+            }
+        });
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -212,6 +390,8 @@ public class MainActivity extends AppCompatActivity
     };
 
 
+
+
 /*
     @Override
     public void onPrepared(MediaPlayer mediaPlayer)
@@ -232,4 +412,48 @@ public class MainActivity extends AppCompatActivity
             }
         });
     }*/
+
+    private synchronized void  getSongsFromSoundCloud(String songID, final boolean playCurrent)
+    {
+        SoundCloudService soundCloudService = SoundCloudServiceBuilder.getService();
+
+        Call<Song> call = soundCloudService.getSoundCloudTracks(songID);
+        Log.d("MainActvity","songid "+songID);
+        call.enqueue(new Callback<Song>() {
+            @Override
+            public void onResponse(Call<Song> call, Response<Song> response) {
+                Log.d("Mainacitivity",response.body().getStreamURL());
+                //mSoundCloudTracks.clear();
+                if(playCurrent)
+                    mSoundCloudTracks.add(0,response.body());
+                else
+                    mSoundCloudTracks.add(response.body());
+                /*Picasso.with(getApplicationContext())
+                        .load(mSoundCloudTracks.get(0).getArtworkURL())
+                        .placeholder(R.drawable.ic_notification_default_black)
+                        .error(R.drawable.ic_notification_default_black)
+                        .into(artWorkImageView);
+                trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
+                songPicked(0,true);*/
+            }
+
+            @Override
+            public void onFailure(Call<Song> call, Throwable t) {
+
+            }
+        });
+    }
+
+    @Override
+    public void hearShake()
+    {
+        musicService.playNext();
+        int position=musicService.getSongPosition();
+        Picasso.with(getApplicationContext())
+                .load(mSoundCloudTracks.get(position).getArtworkURL())
+                .placeholder(R.drawable.ic_notification_default_black)
+                .error(R.drawable.ic_notification_default_black)
+                .into(artWorkImageView);
+        trackTitleTextView.setText(mSoundCloudTracks.get(position).getTitle());
+    }
 }

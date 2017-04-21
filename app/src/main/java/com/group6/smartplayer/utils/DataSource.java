@@ -8,8 +8,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.group6.smartplayer.adapters.SongInfo;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -39,23 +42,54 @@ public class DataSource
         dbHelper.close();
     }
 
-    public static void insert(String tableName, int id, String mood)
-    {
-        if(tableName!=null) {
+    public static void insert(String tableName, int id, String songName, String artistName,String mood) {
+        if (tableName != null) {
             db = SQLiteDatabase.openDatabase(DataSource.DB_ABSOLUTE_PATH, null, SQLiteDatabase.CREATE_IF_NECESSARY);
             ContentValues values = new ContentValues();
             values.put(DBHelper.ID, id);
             values.put(DBHelper.MOOD, mood);
+            values.put(DBHelper.SONGNAME, songName);
+            values.put(DBHelper.ARTISTNAME, artistName);
 
             if (db != null)
                 db.insert(tableName, null, values);
-            Log.d("db path insert",db.getPath());
-            Log.d("table name insert",tableName);
+            Log.d("db path insert", db.getPath());
+            Log.d("table name insert", tableName);
         }
-       // Log.d("insert",i+"");
     }
 
-    public int[] getPlaylist(String tableName, String mood) {
+    public HashMap<Integer, SongInfo> getSongs(String tableName,String artistName) {
+        HashMap<Integer, SongInfo> playlist = new HashMap<Integer, SongInfo>();
+        int i = 0;
+        if (tableName!=null ) {
+            try {
+                Cursor cursor = db.query(tableName, new String[]{DBHelper.ID,DBHelper.SONGNAME,DBHelper.ARTISTNAME,DBHelper.MOOD}, DBHelper.ARTISTNAME+"=?", new String[]{artistName}, null, null, DBHelper.COLUMN_TIMESTAMP + " DESC", "10");
+                //Log.d("cursor",cursor.moveToFirst()+"");
+
+
+                while (cursor.moveToNext()) {
+                    //Log.d("data",sensorData.getX()+"");
+                    Log.d("Cursor", cursor.getInt(0)+"");
+                    SongInfo songInfo = new SongInfo(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
+                    playlist.put(cursor.getInt(0), songInfo);
+                    //cursor.moveToNext();
+                }
+
+                cursor.close();
+
+                return playlist;
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+                Toast.makeText(context, "Table not found", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        return playlist;
+    }
+
+    public int[] getPlaylist(String tableName,String mood){
         int[] playlist = new int[10];
         int i = 0;
         if (tableName!=null ) {

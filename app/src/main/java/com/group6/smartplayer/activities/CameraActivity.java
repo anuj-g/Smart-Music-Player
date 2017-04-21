@@ -42,6 +42,7 @@ import com.facebook.FacebookException;
 import com.facebook.FacebookSdk;
 import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
+import com.facebook.HttpMethod;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.common.ConnectionResult;
@@ -63,6 +64,7 @@ import com.microsoft.projectoxford.emotion.contract.Scores;
 import com.microsoft.projectoxford.emotion.rest.EmotionServiceException;
 
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -80,7 +82,7 @@ import java.util.List;
 public class CameraActivity extends Activity implements GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleApiClient mGoogleApiClient;
-
+    public static final String ARTIST_NAMES="artistnames";
     static int noOfFrames = 0;
     private Camera mCam;
     private MirrorView mCamPreview;
@@ -91,7 +93,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
     String email="";
     private static final int REQUEST_SELECT_IMAGE = 0;
     CallbackManager callbackManager;
-    Intent i;
+  //  Intent i;
     AccessTokenTracker accessTokenTracker;
     AccessToken accessToken;
     // The button to select an image
@@ -108,11 +110,12 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
 
     private EmotionServiceClient client;
 
+    Intent startMainActivityIntent;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
-
+        startMainActivityIntent = new Intent(getApplicationContext(),MainActivity.class);
         FacebookSdk.sdkInitialize(getApplicationContext());
 
         callbackManager = CallbackManager.Factory.create();
@@ -132,11 +135,24 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
         if(accessToken!=null)
         {
             Log.d("access token outside",accessToken.getToken());
+            new GraphRequest(AccessToken.getCurrentAccessToken(),"/me?fields=music",null, HttpMethod.GET, new GraphRequest.Callback() {
+                @Override
+                public void onCompleted(GraphResponse response)
+                {
+
+                    // String musician =   response.getJSONObject().getString("musician");
+                    Log.d("musician",response.getJSONObject().toString());
+                    startMainActivityIntent.putExtra(ARTIST_NAMES,getArtistNamesFromJSON(response.getJSONObject()));
+                    guessCurrentPlace();
+                    //startActivity(new Intent(CameraActivity.this,MainActivity.class));
+
+                }
+            }).executeAsync();
         }
 
         LoginButton loginButton = (LoginButton) findViewById(R.id.login_button);
         loginButton.setReadPermissions(Arrays.asList(
-                "email", "user_about_me", "user_friends", "user_likes", "user_posts", "user_relationships", "user_status"));
+                "email", "user_about_me","user_actions.music","user_actions.video" ,"user_friends", "user_likes", "user_posts", "user_relationships", "user_status"));
 
         loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
 
@@ -145,9 +161,9 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
 
                 if(accessToken!=null) {
                     Log.d("access token onsucces", accessToken.getToken());
-                    i.putExtra("access", accessToken.getToken());
+                    //i.putExtra("access", accessToken.getToken());
                 }
-                GraphRequest request = GraphRequest.newMeRequest(
+                /*GraphRequest request = GraphRequest.newMeRequest(
                         loginResult.getAccessToken(),
                         new GraphRequest.GraphJSONObjectCallback() {
                             @Override
@@ -171,15 +187,29 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
                 Bundle parameters = new Bundle();
                 parameters.putString("fields", "id,name,email,gender,birthday");
                 request.setParameters(parameters);
-                request.executeAsync();
+                request.executeAsync();*/
+
+                new GraphRequest(AccessToken.getCurrentAccessToken(),"/me?fields=music",null, HttpMethod.GET, new GraphRequest.Callback() {
+                    @Override
+                    public void onCompleted(GraphResponse response)
+                    {
+
+                        // String musician =   response.getJSONObject().getString("musician");
+                            Log.d("musician",response.getJSONObject().toString());
+                        startMainActivityIntent.putExtra(ARTIST_NAMES,getArtistNamesFromJSON(response.getJSONObject()));
+                        guessCurrentPlace();
+                            //startActivity(new Intent(CameraActivity.this,MainActivity.class));
+
+                    }
+                }).executeAsync();
 
                 //LoginManager.getInstance().logOut();
                 //i=new Intent(LoginActivity.this,MainActivity.class);
                 // i.setClassName(LoginActivity.this,MainActivity.class);
 
-                i.putExtra("email",email);
+              //  i.putExtra("email",email);
 
-                startActivity(i);
+              //  startActivity(i);
 
             }
 
@@ -204,7 +234,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
         if (client == null) {
             client = new EmotionServiceRestClient(getString(R.string.subscription_key));
         }
-        Toast.makeText(this, "Camera Started", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "Camera Started", Toast.LENGTH_SHORT).show();
         mCameraId = findFirstFrontFacingCamera();
 
         mPreviewLayout = (FrameLayout) findViewById(R.id.camPreview);
@@ -231,7 +261,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
                 Log.d("oncreate face detected",faces.length+"");
             }
         });*/
-        guessCurrentPlace();
+       // guessCurrentPlace();
 
 
     }
@@ -260,25 +290,32 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
                     content += "Percent change of being there: " + (int) ( placeLikelihood.getLikelihood() * 100 ) + "%";
                 //mTextView.setText( content );
                 List<Integer> li=placeLikelihood.getPlace().getPlaceTypes();
-                if( placeLikelihood.getPlace().getPlaceTypes().contains(1013))
+                if( placeLikelihood.getPlace().getPlaceTypes().contains(Place.TYPE_GYM))  // 1013
                 {
-
-                    Intent startMainActivityIntent = new Intent(getApplicationContext(),MainActivity.class);
-                    startMainActivityIntent.putExtra("mood","gym");
+                    Log.d("places", content);
+                    likelyPlaces.release();
+                    startMainActivityIntent.putExtra("mood","happy");
 
                     startActivity(startMainActivityIntent);
                     finish();
-                    likelyPlaces.release();
+
                 }
                 else {
                     Log.d("places", content);
-
+                    likelyPlaces.release();
                     startCameraInLayout(mPreviewLayout, mCameraId);
 
                 }
             }
         });
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        callbackManager.onActivityResult(requestCode,resultCode,data);
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -391,6 +428,23 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
         }
         return result;
     }*/
+    private String[] getArtistNamesFromJSON(JSONObject object)
+    {
+        String[] artistNames=null;
+        try {
+            JSONArray array =object.getJSONObject("music").getJSONArray("data");
+            artistNames=new String[array.length()];
+            for(int i=0;i<array.length();i++)
+            {
+                artistNames[i]= array.getJSONObject(i).getString("name");
+                Log.d("CmeraActivity",artistNames[i]);
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return artistNames;
+    }
     private class doRequest extends AsyncTask<String, String, List<RecognizeResult>>
     {
         // Store error message
@@ -454,18 +508,18 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
                         double happinessValue=r.scores.happiness;
                         double sadnessValue=r.scores.sadness;
                         if(angerValue > sadnessValue && angerValue> happinessValue)
-                            mood="anger";
+                            mood="angry";
                         else if(happinessValue>sadnessValue)
                             mood = "happy";
                         else
                             mood = "sad";
-                        Intent startMainActivityIntent = new Intent(getApplicationContext(),MainActivity.class);
+                        //startMainActivityIntent = new Intent(CameraActivity.this,MainActivity.class);
                         startMainActivityIntent.putExtra("mood",mood);
 
                         startActivity(startMainActivityIntent);
                         finish();
 
-                        Toast.makeText(CameraActivity.this, r.scores.happiness+"", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(CameraActivity.this, "Mood: "+mood, Toast.LENGTH_SHORT).show();
                         /*
                         mEditText.append(String.format("\nFace #%1$d \n", count));
                         mEditText.append(String.format("\t anger: %1$.5f\n", r.scores.anger));
@@ -613,7 +667,8 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mCam.release();
+        if(mCam!=null)
+            mCam.release();
     }
 
     public class MirrorView extends SurfaceView implements

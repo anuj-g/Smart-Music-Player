@@ -14,6 +14,7 @@ public class SoundCloudServiceBuilder
     private static final Retrofit RETROFIT= new Retrofit
             .Builder()
             .baseUrl(Config.SC_API_URL)
+
             .addConverterFactory(GsonConverterFactory.create())
             .build();
     private static final SoundCloudService SERVICE = RETROFIT.create(SoundCloudService.class);
