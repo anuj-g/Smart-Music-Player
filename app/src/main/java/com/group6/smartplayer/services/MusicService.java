@@ -1,18 +1,22 @@
 package com.group6.smartplayer.services;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 
+import com.group6.smartplayer.R;
 import com.group6.smartplayer.activities.MainActivity;
 import com.group6.smartplayer.adapters.Song;
 import com.group6.smartplayer.utils.Config;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -35,11 +39,16 @@ public class MusicService extends Service implements
     private boolean shuffle=false;
     private Random rand;
     private boolean isInit;
-
-
+    Song currentSong;
+    Context context;
     public MusicService() {
+
     }
 
+    public void setContext(Context c)
+    {
+        context=c;
+    }
     public void initMusicPlayer(){
         //set player properties
         player.setWakeMode(getApplicationContext(),
@@ -93,10 +102,16 @@ public class MusicService extends Service implements
         if(!isInit)
         mp.start();
         Log.d("MusicService","onprepared");
-        MainActivity.progressBar.setVisibility(View.GONE);
+        Log.d("MusicService","title"+songTitle);
+        //MainActivity.progressBar.setVisibility(View.GONE);
         if(!isPrepared)
             go();
         isPrepared = true;
+        Intent in = new Intent();
+        in.putExtra("TYPE","prepared");
+        in.setAction("NOW");
+//sendBroadcast(in);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(in);
 
 //        Intent notIntent = new Intent(this, MainActivity.class);
 //        notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -125,7 +140,7 @@ public class MusicService extends Service implements
     public int getSongPosn() {
         return songPosn;
     }
-
+    public Song getCurrentSong(){return  currentSong;}
     public void setSong(int songIndex){
         songPosn=songIndex;
     }
@@ -135,6 +150,7 @@ public class MusicService extends Service implements
         this.isInit = isInit;
         isPrepared = false;
         Song playSong = songs.get(songPosn);
+        currentSong = playSong;
         songTitle=playSong.getTitle();
 //get id
         long currSong = playSong.getID();
@@ -210,4 +226,6 @@ public class MusicService extends Service implements
             return MusicService.this;
         }
     }
+
+
 }

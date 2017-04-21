@@ -1,9 +1,11 @@
 package com.group6.smartplayer.activities;
 
 import android.app.SearchManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -12,6 +14,7 @@ import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.provider.BaseColumns;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -68,6 +71,9 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
     HashMap<Integer,String> SADNESS_ARTIST_ID=new HashMap<Integer,String>();
     HashMap<Integer,String> HAPPY_ARTISTS_ID=new HashMap<Integer,String>();
     HashMap<Integer,String> ANGER_ARTISTS_ID=new HashMap<Integer,String>();
+
+    private BroadcastReceiver statusReceiver;
+    private IntentFilter mIntent;
 
     static final String TABLE_NAME= "Songs";
     SearchView searchView;
@@ -135,20 +141,20 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
 
         Set<Integer> sadnessSongsKeySet = SADNESS_SONGS_ID.keySet();
 
-        for (Integer key : sadnessSongsKeySet) {
-            dataSource.insert("Songs", key, SADNESS_SONGS_ID.get(key), SADNESS_ARTIST_ID.get(key),"sad");
-        }
-
-        Set<Integer> happySongsKeySet = HAPPY_SONGS_ID.keySet();
-        for (Integer key : happySongsKeySet) {
-            dataSource.insert("Songs", key, HAPPY_SONGS_ID.get(key), HAPPY_ARTISTS_ID.get(key),"happy");
-        }
-
-
-        Set<Integer> angrySongsKeySet = ANGER_SONGS_ID.keySet();
-        for (Integer key : angrySongsKeySet) {
-            dataSource.insert("Songs", key, ANGER_SONGS_ID.get(key), ANGER_ARTISTS_ID.get(key),"angry");
-        }
+//        for (Integer key : sadnessSongsKeySet) {
+//            dataSource.insert("Songs", key, SADNESS_SONGS_ID.get(key), SADNESS_ARTIST_ID.get(key),"sad");
+//        }
+//
+//        Set<Integer> happySongsKeySet = HAPPY_SONGS_ID.keySet();
+//        for (Integer key : happySongsKeySet) {
+//            dataSource.insert("Songs", key, HAPPY_SONGS_ID.get(key), HAPPY_ARTISTS_ID.get(key),"happy");
+//        }
+//
+//
+//        Set<Integer> angrySongsKeySet = ANGER_SONGS_ID.keySet();
+//        for (Integer key : angrySongsKeySet) {
+//            dataSource.insert("Songs", key, ANGER_SONGS_ID.get(key), ANGER_ARTISTS_ID.get(key),"angry");
+//        }
 
         mood=getIntent().getStringExtra("mood");
         Log.d("MainActivity","mood "+mood);
@@ -157,13 +163,7 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
             getSongsFromSoundCloud(String.valueOf(i), false);
 
         }
-        Picasso.with(getApplicationContext())
-                .load(mSoundCloudTracks.get(0).getArtworkURL())
-                .placeholder(R.drawable.ic_notification_default_black)
-                .error(R.drawable.ic_notification_default_black)
-                .into(artWorkImageView);
-        trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
-        songPicked(0,true);
+
         artWorkImageView= (ImageView) findViewById(R.id.imageViewArtWork);
         trackTitleTextView= (TextView) findViewById(R.id.textViewTrackTitle);
         playButton= (ImageButton) findViewById(R.id.btn_play);
@@ -235,15 +235,53 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
     public void songPicked(int index,boolean isInit){
         musicService.setSong(index);
         musicService.playSong(isInit);
-        togglePlayPause();
+       // togglePlayPause();
         if(playbackPaused){
 //            setController();
 
             playbackPaused=false;
         }
 //        controller.show(0);
+        if(musicService.isPrepared()) {
+
+        }
+
 
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(MainActivity.this).registerReceiver(broadcastReceiver, new IntentFilter("NOW"));
+    }
+    @Override
+    protected void onPause() {
+        if(mIntent != null) {
+            unregisterReceiver(statusReceiver);
+            mIntent = null;
+        }
+        super.onPause();
+    }
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String type = intent.getStringExtra("message");  //get the type of message from MyGcmListenerService 1 - lock or 0 -Unlock
+            //sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+            //accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            //Log.d(TAG, "Status: " + type);
+            Log.d("broadcast","received");
+           // if(type!=null)
+            {
+                Picasso.with(getApplicationContext())
+                        .load(musicService.getCurrentSong().getArtworkURL())
+                        .placeholder(R.drawable.ic_notification_default_black)
+                        .error(R.drawable.ic_notification_default_black)
+                        .into(artWorkImageView);
+                trackTitleTextView.setText(musicService.getCurrentSong().getTitle());
+                Log.d("Mainactivity", "title" + musicService.getCurrentSong().getTitle());
+            }
+        }
+    };
     private void togglePlayPause() {
         //if(musicService.isPrepared())
         {
@@ -251,12 +289,14 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
                 //if(isFirstTime) mood = "null";
 
                 musicService.pausePlayer();
+                playbackPaused = true;
                 playButton.setBackgroundResource(R.drawable.ic_play_black);
                 //mPlayerControl.setImageResource(R.drawable.ic_play);
             } else {
                 //if(isFirstTime) mood = mSoundCloudTracks.get(musicSrv.getSongPosn()).getMood();
                 musicService.go();
                 playButton.setBackgroundResource(R.drawable.ic_pause_black);
+                playbackPaused=false;
                 //mPlayerControl.setImageResource(R.drawable.ic_pause);
             }
         }
@@ -381,6 +421,7 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
             musicService = binder.getService();
             //pass list
             musicService.setList(mSoundCloudTracks);
+            musicService.setContext(getApplicationContext());
             musicBound = true;
         }
         public void onServiceDisconnected(ComponentName name) {
@@ -413,28 +454,50 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
         });
     }*/
 
-    private synchronized void  getSongsFromSoundCloud(String songID, final boolean playCurrent)
+    private void  getSongsFromSoundCloud(final String songID, final boolean playCurrent)
     {
         SoundCloudService soundCloudService = SoundCloudServiceBuilder.getService();
 
         Call<Song> call = soundCloudService.getSoundCloudTracks(songID);
         Log.d("MainActvity","songid "+songID);
+
         call.enqueue(new Callback<Song>() {
             @Override
             public void onResponse(Call<Song> call, Response<Song> response) {
-                Log.d("Mainacitivity",response.body().getStreamURL());
+                //Log.d("Mainacitivity",response.body().getStreamURL());
                 //mSoundCloudTracks.clear();
-                if(playCurrent)
-                    mSoundCloudTracks.add(0,response.body());
+                if(playCurrent) {
+                    mSoundCloudTracks.add(0, response.body());
+                    /*Picasso.with(getApplicationContext())
+                            .load(mSoundCloudTracks.get(0).getArtworkURL())
+                            .placeholder(R.drawable.ic_notification_default_black)
+                            .error(R.drawable.ic_notification_default_black)
+                            .into(artWorkImageView);
+                    trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
+                    Log.d("Mainactivity", "title" + mSoundCloudTracks.get(0).getTitle());*/
+                    songPicked(0, true);
+                }
                 else
                     mSoundCloudTracks.add(response.body());
-                /*Picasso.with(getApplicationContext())
-                        .load(mSoundCloudTracks.get(0).getArtworkURL())
-                        .placeholder(R.drawable.ic_notification_default_black)
-                        .error(R.drawable.ic_notification_default_black)
-                        .into(artWorkImageView);
-                trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
-                songPicked(0,true);*/
+                if(musicService.isPrepared()) {
+                    Picasso.with(getApplicationContext())
+                            .load(musicService.getCurrentSong().getArtworkURL())
+                            .placeholder(R.drawable.ic_notification_default_black)
+                            .error(R.drawable.ic_notification_default_black)
+                            .into(artWorkImageView);
+                    trackTitleTextView.setText(musicService.getCurrentSong().getTitle());
+                    Log.d("Mainactivity", "title" + musicService.getCurrentSong().getTitle());
+                }
+                if(mSoundCloudTracks.size() == songIds.length) {
+                    /*Picasso.with(getApplicationContext())
+                            .load(mSoundCloudTracks.get(0).getArtworkURL())
+                            .placeholder(R.drawable.ic_notification_default_black)
+                            .error(R.drawable.ic_notification_default_black)
+                            .into(artWorkImageView);
+                    trackTitleTextView.setText(mSoundCloudTracks.get(0).getTitle());
+                    Log.d("Mainactivity", "title" + mSoundCloudTracks.get(0).getTitle());*/
+                    songPicked(0, true);
+                }
             }
 
             @Override
@@ -456,4 +519,6 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
                 .into(artWorkImageView);
         trackTitleTextView.setText(mSoundCloudTracks.get(position).getTitle());
     }
+
+
 }
