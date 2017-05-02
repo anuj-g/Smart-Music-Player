@@ -151,7 +151,8 @@ public class MusicService extends Service implements
         isPrepared = false;
         Song playSong = songs.get(songPosn);
         currentSong = playSong;
-        songTitle=playSong.getTitle();
+        if(playSong!=null)
+            songTitle=playSong.getTitle();
 //get id
         long currSong = playSong.getID();
 //set uri

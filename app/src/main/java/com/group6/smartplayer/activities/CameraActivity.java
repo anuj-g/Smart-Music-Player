@@ -101,7 +101,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
 
     // The URI of the image selected to detect.
     //private Uri mImageUri;
-
+    ImageView imageView;
     // The image selected to detect.
     private Bitmap mBitmap;
 
@@ -116,6 +116,9 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
         startMainActivityIntent = new Intent(getApplicationContext(),MainActivity.class);
+
+        imageView= (ImageView) findViewById(R.id.imageView);
+        imageView.setImageResource(R.drawable.main);
         FacebookSdk.sdkInitialize(getApplicationContext());
 
         callbackManager = CallbackManager.Factory.create();
@@ -239,14 +242,14 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
 
         mPreviewLayout = (FrameLayout) findViewById(R.id.camPreview);
         mPreviewLayout.removeAllViews();
-        button = (Button) findViewById(R.id.button);
+        /*button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 mCam.takePicture(null, pictureCallback, pictureCallback);
             }
-        });
+        });*/
         mPreviewLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -295,7 +298,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
                     Log.d("places", content);
                     likelyPlaces.release();
                     startMainActivityIntent.putExtra("mood","happy");
-
+                    Toast.makeText(CameraActivity.this, "Gym", Toast.LENGTH_SHORT).show();
                     startActivity(startMainActivityIntent);
                     finish();
 
@@ -519,7 +522,7 @@ public class CameraActivity extends Activity implements GoogleApiClient.OnConnec
                         startActivity(startMainActivityIntent);
                         finish();
 
-                        Toast.makeText(CameraActivity.this, "Mood: "+mood, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(CameraActivity.this, mood, Toast.LENGTH_SHORT).show();
                         /*
                         mEditText.append(String.format("\nFace #%1$d \n", count));
                         mEditText.append(String.format("\t anger: %1$.5f\n", r.scores.anger));

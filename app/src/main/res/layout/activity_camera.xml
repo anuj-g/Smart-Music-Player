@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,6 +8,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:background="#FFFFFF"
     tools:context="com.group6.smartplayer.activities.CameraActivity">
     <FrameLayout
         android:id="@+id/camPreview"
@@ -15,15 +17,6 @@
         android:layout_alignParentRight="true" >
     </FrameLayout>
 
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="New Button"
-        android:id="@+id/button"
-        android:layout_marginTop="65dp"
-        android:layout_below="@+id/camPreview"
-        android:layout_centerHorizontal="true" />
     <com.facebook.login.widget.LoginButton
         android:id="@+id/login_button"
         android:layout_width="wrap_content"
@@ -31,6 +24,16 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="63dp"
         android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        app:srcCompat="@drawable/main"
+        android:adjustViewBounds="true"
+        android:scaleType="fitXY"
+        android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
 
 

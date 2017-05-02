@@ -93,12 +93,31 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
     final ArrayList<Song> mSoundCloudTracks = new ArrayList<>();
 
     DataSource dataSource;
+    private boolean isLikeButtonPressed=false;
+    private ImageButton buttonLike;
+    private ImageButton buttonDislike;
+    private boolean isDisLikePressed=false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         //progressBar= (ProgressBar) findViewById(R.id.progressBar2);
+        buttonLike= (ImageButton) findViewById(R.id.btn_like);
+        buttonLike.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toggleLikeButtons(true);
+            }
+        });
+        buttonDislike= (ImageButton) findViewById(R.id.btn_dislike);
+        buttonDislike.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toggleLikeButtons(false);
+            }
+        });
         dataSource= new DataSource(getApplicationContext());
         dataSource.createtable("Songs");
         dataSource.open();
@@ -141,21 +160,20 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
 
         Set<Integer> sadnessSongsKeySet = SADNESS_SONGS_ID.keySet();
 
-//        for (Integer key : sadnessSongsKeySet) {
-//            dataSource.insert("Songs", key, SADNESS_SONGS_ID.get(key), SADNESS_ARTIST_ID.get(key),"sad");
-//        }
-//
-//        Set<Integer> happySongsKeySet = HAPPY_SONGS_ID.keySet();
-//        for (Integer key : happySongsKeySet) {
-//            dataSource.insert("Songs", key, HAPPY_SONGS_ID.get(key), HAPPY_ARTISTS_ID.get(key),"happy");
-//        }
-//
-//
-//        Set<Integer> angrySongsKeySet = ANGER_SONGS_ID.keySet();
-//        for (Integer key : angrySongsKeySet) {
-//            dataSource.insert("Songs", key, ANGER_SONGS_ID.get(key), ANGER_ARTISTS_ID.get(key),"angry");
-//        }
+        for (Integer key : sadnessSongsKeySet) {
+            dataSource.insert("Songs", key, SADNESS_SONGS_ID.get(key), SADNESS_ARTIST_ID.get(key),"sad");
+        }
 
+        Set<Integer> happySongsKeySet = HAPPY_SONGS_ID.keySet();
+        for (Integer key : happySongsKeySet) {
+            dataSource.insert("Songs", key, HAPPY_SONGS_ID.get(key), HAPPY_ARTISTS_ID.get(key),"happy");
+        }
+
+
+        Set<Integer> angrySongsKeySet = ANGER_SONGS_ID.keySet();
+        for (Integer key : angrySongsKeySet) {
+            dataSource.insert("Songs", key, ANGER_SONGS_ID.get(key), ANGER_ARTISTS_ID.get(key),"angry");
+        }
         mood=getIntent().getStringExtra("mood");
         Log.d("MainActivity","mood "+mood);
         songIds = dataSource.getPlaylist(TABLE_NAME,mood);
@@ -279,9 +297,52 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
                         .into(artWorkImageView);
                 trackTitleTextView.setText(musicService.getCurrentSong().getTitle());
                 Log.d("Mainactivity", "title" + musicService.getCurrentSong().getTitle());
+                if (musicService.isPng()) {
+                    //if(isFirstTime) mood = "null";
+
+                   // musicService.pausePlayer();
+                    //playbackPaused = true;
+                    playButton.setBackgroundResource(R.drawable.ic_pause_black);
+                    //mPlayerControl.setImageResource(R.drawable.ic_play);
+                } else {
+                    //if(isFirstTime) mood = mSoundCloudTracks.get(musicSrv.getSongPosn()).getMood();
+                    //musicService.go();
+                    playButton.setBackgroundResource(R.drawable.ic_play_black);
+                   // playbackPaused=false;
+                    //mPlayerControl.setImageResource(R.drawable.ic_pause);
+                }
             }
         }
     };
+
+    private void toggleLikeButtons(boolean button) {
+        if (button) {
+            if (isLikeButtonPressed) {
+                buttonLike.setImageResource(R.drawable.ic_action_like_white);
+                isLikeButtonPressed = false;
+            } else {
+                buttonLike.setImageResource(R.drawable.ic_action_like_black);
+                buttonDislike.setImageResource(R.drawable.ic_action_dontlike_white);
+                isDisLikePressed = false;
+                isLikeButtonPressed = true;
+            }
+
+
+        } else {
+
+            if (isDisLikePressed) {
+
+                buttonDislike.setImageResource(R.drawable.ic_action_dontlike_white);
+                isDisLikePressed = false;
+            } else {
+                buttonDislike.setImageResource(R.drawable.ic_action_dontlike_black);
+
+                buttonLike.setImageResource(R.drawable.ic_action_like_white);
+                isDisLikePressed = true;
+                isLikeButtonPressed = false;
+            }
+        }
+    }
     private void togglePlayPause() {
         //if(musicService.isPrepared())
         {
@@ -389,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements ShakeDetector.Lis
                 };
                 MatrixCursor cursor = new MatrixCursor(columns);
                 for (int i = 0; i < suggestions.size(); i++) {
-                    String[] tmp = {Integer.toString(i),suggestions.get(i).getSongName(),suggestions.get(i).getSongName()};
+                    String[] tmp = {Integer.toString(i),suggestions.get(i).getSongName()+"\n"+suggestions.get(i).getArtistName(),suggestions.get(i).getSongName()+"\n"+suggestions.get(i).getArtistName()};
                     cursor.addRow(tmp);
                 }
                 suggestionAdapter.swapCursor(cursor);

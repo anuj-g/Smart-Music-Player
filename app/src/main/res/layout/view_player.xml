@@ -82,7 +82,7 @@
       />
 
   <ImageButton
-      android:id="@+id/btn_next"
+      android:id="@+id/btn_dislike"
       android:layout_width="@dimen/touch_default"
       android:layout_height="@dimen/touch_default"
       android:layout_alignParentEnd="true"
@@ -91,7 +91,7 @@
       android:layout_marginBottom="5dp"
       android:layout_marginEnd="16dp"
       android:layout_marginRight="16dp"
-      android:background="@drawable/ic_next_black"
+      android:src="@drawable/ic_action_dontlike_white"
       />
 
   <ProgressBar
@@ -106,7 +106,7 @@
       />
 
   <ImageButton
-      android:id="@+id/btn_prev"
+      android:id="@+id/btn_like"
       android:layout_width="@dimen/touch_default"
       android:layout_height="@dimen/touch_default"
       android:layout_alignParentLeft="true"
@@ -115,7 +115,25 @@
       android:layout_marginBottom="5dp"
       android:layout_marginLeft="16dp"
       android:layout_marginStart="16dp"
-      android:background="@drawable/ic_previous_black"
+      android:src="@drawable/ic_action_like_white"
       />
 
+  <ImageButton
+      android:id="@+id/btn_prev"
+      android:layout_width="@dimen/touch_default"
+      android:layout_height="@dimen/touch_default"
+      android:layout_marginLeft="16dp"
+      android:background="@drawable/ic_previous_black"
+      android:layout_below="@+id/linearLayout"
+      android:layout_toEndOf="@+id/btn_like" />
+
+  <ImageButton
+      android:id="@+id/btn_next"
+      android:layout_width="@dimen/touch_default"
+      android:layout_height="@dimen/touch_default"
+      android:layout_marginEnd="13dp"
+      android:layout_marginRight="16dp"
+      android:background="@drawable/ic_next_black"
+      android:layout_below="@+id/linearLayout"
+      android:layout_toStartOf="@+id/btn_dislike" />
 </RelativeLayout>
